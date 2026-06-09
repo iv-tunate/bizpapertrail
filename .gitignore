@@ -1,0 +1,5 @@
+.vscode/
+bizpapertrail.exe
+.env
+vendor
+setup.md
