@@ -27,7 +27,6 @@ func main() {
 		log.Fatal("[FATAL ERROR] Database url env variable not set")
 	}
 
-
 	db_conn, err := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
 
 	if err != nil {
@@ -44,6 +43,7 @@ func main() {
 	}
 
 	e.GET("/healthz", checkserverstatus)
+	registerRoutes(e)
 	//------------------------------------------------------------------------------------
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
