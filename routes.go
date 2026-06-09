@@ -1,7 +1,10 @@
 package main
 
-import "github.com/labstack/echo"
+import (
+	"github.com/iv-tunate/bizpapertrail/handlers"
+	"github.com/labstack/echo"
+)
 
-func registerRoutes(e *echo.Echo) {
+func registerRoutes(e *echo.Echo, h *handlers.Handler) {
 
 }
