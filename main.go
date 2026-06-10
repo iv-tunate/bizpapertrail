@@ -12,6 +12,7 @@ import (
 
 	"github.com/iv-tunate/bizpapertrail/database"
 	"github.com/iv-tunate/bizpapertrail/handlers"
+	"github.com/iv-tunate/bizpapertrail/internal/cache"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo"
@@ -21,7 +22,7 @@ func main() {
 	godotenv.Load(".env")
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	env := os.Getenv("APP_ENV");
+	env := os.Getenv("ENV");
 	slog.SetDefault(logger)
 	
 
@@ -56,6 +57,8 @@ func main() {
 	}
 
 	e.GET("/healthz", checkserverstatus)
+	cache.InitializeCache()
+	defer cache.StopCache()
 	registerRoutes(e, h)
 
 	//------------------------------------------------------------------------------------
@@ -74,7 +77,7 @@ func main() {
 		}
 	}()
 	log.Printf("starting up bizpapertrail server on PORT:%v \n\n", port)
-	slog.Info("bizpapertrail running in [environment] mode", env)
+	slog.InfoContext(context.Background(), "bizpapertrail running", "Environment",env)
 	if err = server.ListenAndServe(); err != http.ErrServerClosed{
 		log.Fatalf("[FATAL ERROR] :Server crashed%v", err)
 	}

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/iv-tunate/bizpapertrail/utils"
+	"github.com/iv-tunate/bizpapertrail/internal/utils"
 	"github.com/labstack/echo"
 )
 

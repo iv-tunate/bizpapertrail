@@ -9,7 +9,7 @@ import (
 type ResponseDetail struct {
 	Code             int `json:"status_code"`
 	Data             any `json:"data"`
-	PaginationDetail any `json:"pagination_detail"`
+	Meta			 any `json:"meta"`
 	Message          any `json:"message"`
 	Error            any `json:"error"`
 }
@@ -26,11 +26,11 @@ func ErrorResponse(c echo.Context, code int, message string, err any) error{
 	})
 }
 
-func SuccessResponse(c echo.Context, code int, message string, data any, pagination_detail map[string]any) error{
+func SuccessResponse(c echo.Context, code int, message string, data any, meta map[string]any) error{
 	return c.JSON(code, ResponseDetail{
 		Code: code,
 		Message: message,
 		Data: data,
-		PaginationDetail: pagination_detail,
+		Meta: meta,
 	})
 }

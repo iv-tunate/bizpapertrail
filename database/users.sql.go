@@ -14,7 +14,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users(name, email, password, phone_number, business_name, is_admin)
 VALUES($1, $2, $3, $4, $5, $6)
-RETURNING id, email, phone_number, business_name, is_admin created_at, updated_at
+RETURNING id, email, phone_number, business_name, is_admin, created_at, updated_at, verified, blacklisted
 `
 
 type CreateUserParams struct {
@@ -31,8 +31,11 @@ type CreateUserRow struct {
 	Email        string             `json:"email"`
 	PhoneNumber  string             `json:"phone_number"`
 	BusinessName string             `json:"business_name"`
-	CreatedAt    bool               `json:"created_at"`
+	IsAdmin      bool               `json:"is_admin"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	Verified     bool               `json:"verified"`
+	Blacklisted  bool               `json:"blacklisted"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
@@ -50,19 +53,47 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 		&i.Email,
 		&i.PhoneNumber,
 		&i.BusinessName,
+		&i.IsAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Verified,
+		&i.Blacklisted,
 	)
 	return i, err
 }
 
-const verifyUser = `-- name: VerifyUser :exec
+const verifyUserEmail = `-- name: VerifyUserEmail :one
 UPDATE users 
-SET is_verified = TRUE
-WHERE id = $1
+SET verified = TRUE
+WHERE email = $1
+RETURNING id, email, phone_number, business_name, is_admin, created_at, updated_at, verified, blacklisted
 `
 
-func (q *Queries) VerifyUser(ctx context.Context, id pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, verifyUser, id)
-	return err
+type VerifyUserEmailRow struct {
+	ID           pgtype.UUID        `json:"id"`
+	Email        string             `json:"email"`
+	PhoneNumber  string             `json:"phone_number"`
+	BusinessName string             `json:"business_name"`
+	IsAdmin      bool               `json:"is_admin"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	Verified     bool               `json:"verified"`
+	Blacklisted  bool               `json:"blacklisted"`
+}
+
+func (q *Queries) VerifyUserEmail(ctx context.Context, email string) (VerifyUserEmailRow, error) {
+	row := q.db.QueryRow(ctx, verifyUserEmail, email)
+	var i VerifyUserEmailRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PhoneNumber,
+		&i.BusinessName,
+		&i.IsAdmin,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Verified,
+		&i.Blacklisted,
+	)
+	return i, err
 }

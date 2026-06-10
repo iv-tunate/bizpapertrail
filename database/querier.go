@@ -24,7 +24,7 @@ type Querier interface {
 	GetUserPolicyIDs(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error)
 	RemoveUserPolicy(ctx context.Context, arg RemoveUserPolicyParams) error
 	UpdatePolicy(ctx context.Context, arg UpdatePolicyParams) (Policy, error)
-	VerifyUser(ctx context.Context, id pgtype.UUID) error
+	VerifyUserEmail(ctx context.Context, email string) (VerifyUserEmailRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

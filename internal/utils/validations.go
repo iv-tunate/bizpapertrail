@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"log"
 	"regexp"
 	"strings"
 
@@ -20,8 +21,10 @@ func ValidatePhoneNumber(phone_number *string) (bool){
 }
 
 
-func ValidateUserParams(param interface{})(bool){
-	validate := validator.New();
+var validate = validator.New();
+
+func init(){
+	log.Println("Registering validators")
 	
 	validate.RegisterValidation("email_regex", func(f1 validator.FieldLevel) bool{
 		return EmailRegex.MatchString(f1.Field().String())
@@ -32,7 +35,9 @@ func ValidateUserParams(param interface{})(bool){
 	validate.RegisterValidation("phone_regex", func(f1 validator.FieldLevel) bool{
 		return PhoneRegex.MatchString(f1.Field().String())
 	})
+}
 
+func ValidateUserParams(param any)(bool){
 	err := validate.Struct(param);
 	if err != nil{
 		return  false
