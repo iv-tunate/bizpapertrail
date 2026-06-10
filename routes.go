@@ -16,16 +16,22 @@ func registerRoutes(e *echo.Echo, h *handlers.Handler) {
 		AllowMethods: []string{"GET", "PUT", "POST", "DELETE", "OPTIONS"},
 		AllowCredentials: false,
 		MaxAge: 300,
-		ExposeHeaders:    []string{"Link"},
+		ExposeHeaders: []string{"Link"},
 	}))
+	
+	public := api.Group("/account")
+	public.POST("/register", h.RegisterUser)
+	public.PUT("/verify_email", h.VerifyUser)
+	public.POST("/admin", h.RegisterAdmin)
+
 	
 	protected := api.Group("")
 	protected.Use(middlewares.JWTMiddleware)
 
-	user := protected.Group("/user")
-	user.POST("/user", h.RegisterUser)
-	user.PUT("/verify_email", h.VerifyUser)
-
+	//user := protected.Group("/user")
 	auth := protected.Group("/auth")
 	auth.POST("/refresh", h.RefreshJwtToken)
+
+	admin := protected.Group("/admin")
+	admin.Use(middlewares.AdminMiddleWare)
 }

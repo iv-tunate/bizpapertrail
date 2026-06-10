@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"log"
 	"regexp"
 	"strings"
 
@@ -24,8 +23,6 @@ func ValidatePhoneNumber(phone_number *string) (bool){
 var validate = validator.New();
 
 func init(){
-	log.Println("Registering validators")
-	
 	validate.RegisterValidation("email_regex", func(f1 validator.FieldLevel) bool{
 		return EmailRegex.MatchString(f1.Field().String())
 	})
@@ -37,10 +34,29 @@ func init(){
 	})
 }
 
-func ValidateUserParams(param any)(bool){
-	err := validate.Struct(param);
-	if err != nil{
-		return  false
-	}
-	return  true
+func ValidateUserParams(param any) map[string]string {
+    err := validate.Struct(param)
+    if err == nil {
+        return nil
+    }
+
+    errors := make(map[string]string)
+    for _, e := range err.(validator.ValidationErrors) {
+        field := strings.ToLower(e.Field())
+        switch e.Tag() {
+        case "required":
+            errors[field] = field + " is required"
+        case "min":
+            errors[field] = field + " must be at least " + e.Param() + " characters"
+        case "email_regex":
+            errors[field] = "invalid email format"
+        case "password":
+            errors[field] = "password must contain uppercase, lowercase, number and special character"
+        case "phone_regex":
+            errors[field] = "invalid phone number format"
+        default:
+            errors[field] = field + " is invalid"
+        }
+    }
+    return errors
 }
