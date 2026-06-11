@@ -14,10 +14,12 @@ func InitializeCache(){
 	StringCache = ttlcache.New(ttlcache.WithTTL[string, string](5 * time.Minute))
 	BlacklistedTokensCache = ttlcache.New[string, bool]()
 	go StringCache.Start()
+	go BlacklistedTokensCache.Start()
 }
 
 func StopCache(){
 	go StringCache.Stop()
+	go BlacklistedTokensCache.Stop()
 }
 
 

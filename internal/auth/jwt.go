@@ -60,7 +60,7 @@ func GenerateRefreshToken(claims models.UserClaims) (string, error){
 		Verified: claims.Verified,
 		Blacklisted: claims.Blacklisted,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(20 * time.Minute)),
 			IssuedAt: jwt.NewNumericDate(time.Now()),
 			Issuer: issuer,
 		},

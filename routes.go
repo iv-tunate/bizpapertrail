@@ -22,16 +22,18 @@ func registerRoutes(e *echo.Echo, h *handlers.Handler) {
 	public := api.Group("/account")
 	public.POST("/register", h.RegisterUser)
 	public.PUT("/verify_email", h.VerifyUser)
-	public.POST("/admin", h.RegisterAdmin)
+	public.POST("/login", h.Login)
+	public.POST("/verification_token", h.RequestVerificationToken)
 
-	
 	protected := api.Group("")
 	protected.Use(middlewares.JWTMiddleware)
-
+	
 	//user := protected.Group("/user")
 	auth := protected.Group("/auth")
 	auth.POST("/refresh", h.RefreshJwtToken)
+	auth.POST("/logout", h.Logout)
 
 	admin := protected.Group("/admin")
 	admin.Use(middlewares.AdminMiddleWare)
+	admin.POST("", h.RegisterAdmin)
 }
