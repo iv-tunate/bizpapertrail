@@ -21,7 +21,7 @@ func registerRoutes(e *echo.Echo, h *handlers.Handler) {
 	
 	public := api.Group("/account")
 	public.POST("/register", h.RegisterUser)
-	public.PUT("/verify_email", h.VerifyUser)
+	public.PUT("/verify", h.VerifyUser)
 	public.POST("/login", h.Login)
 	public.POST("/verification_token", h.RequestVerificationToken)
 
