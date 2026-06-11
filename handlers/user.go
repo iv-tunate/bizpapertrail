@@ -26,17 +26,28 @@ func (h *Handler) RegisterAdmin(c echo.Context) error{
 	ctx := c.Request().Context()
 
 	if err := c.Bind(&params); err !=nil {
+		h.Logger.ErrorContext(ctx, "bind failed", "error", err, "Handler:", "Adminr")
 		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid json body param", http.StatusBadRequest)
 	}
 
 	if validationErrors := utils.ValidateUserParams(params); validationErrors != nil {
+		h.Logger.InfoContext(ctx, "Validation of registation parameter failed", "Details", map[string]any{
+			"Handler": "RegisterAdmin",
+			"Error(s)": validationErrors,
+			"Email": *params.Email,
+		})
     	return utils.ErrorResponse(c, http.StatusBadRequest, "validation failed", validationErrors)
 	}
 
 	hashedPassWord, err := bcrypt.GenerateFromPassword([]byte(*params.Password), bcrypt.DefaultCost)
 	if err != nil{
 		h.Logger.ErrorContext(ctx, "[ERROR]: An error occured while generating password hash", 
-		"error", err, "status_code", 500, "email_attempted", *params.Email)
+		 "Details", map[string]any{
+			"Handler": "RegisterAdmin",
+			"Error(s)": err,
+			"Email": *params.Email,
+			"status_code": 500,
+		})
 		return  utils.ErrorResponse(c, http.StatusInternalServerError, "An internal Server Error occued...Please try again", "Internal Server Error")
 	}
 
@@ -48,7 +59,6 @@ func (h *Handler) RegisterAdmin(c echo.Context) error{
 			"Error Details", map[string]any {
 			"Handler": "RegisterAdmin", 
 			"Error": err,
-			"StatusCode": 500,
 			"Email_Attempting Register Operation": *params.Email,
 			},
 		)
@@ -70,18 +80,17 @@ func (h *Handler) RegisterAdmin(c echo.Context) error{
 
 	if err != nil{
 		statusCode, msg := utils.ParseDbError(err)
-		h.Logger.ErrorContext(ctx, "[ERROR]: An error occured:", "db_error", msg, "status_code", statusCode, "email_attempted", *params.Email)
-		return  utils.ErrorResponse(c, statusCode, "An internal Server Error occued...Please try again", "Internal Server Error")
+		h.Logger.ErrorContext(ctx, "[ERROR]: An error occured:", "db_error", msg, "email_attempted", *params.Email)
+		return  utils.ErrorResponse(c, statusCode, msg, http.StatusText(statusCode))
 	}
 
 	token, err := utils.GenerateRandomToken(6)
 	if err != nil{
 		h.Logger.ErrorContext(ctx, "[ERROR] An error occured",
 			"Error Details", map[string]any {
-			"Handler": "Register User", 
+			"Handler": "RegisterUser", 
 			"Error": err,
-			"StatusCode": 500,
-			"Email_Attempting register operation": userRow.Email,
+			"Email": userRow.Email,
 			},
 		)
 		return utils.ErrorResponse(c, http.StatusInternalServerError, "An internal Server Error occued...Please try again", "Internal Server Error")
@@ -102,7 +111,6 @@ func (h *Handler) RegisterAdmin(c echo.Context) error{
 		"Error Details", map[string]any {
 		"Handler": "RegisterUser", 
 		"Error": err,
-		"StatusCode": 500,
 		"context": ctx,
 		"Email_Attempting register operation": *params.Email,
 		})
@@ -113,21 +121,32 @@ func (h *Handler) RegisterAdmin(c echo.Context) error{
 	return  utils.SuccessResponse(c, 200, "User Profile Created Successfully", userRow, nil)
 }
 
-func (h *Handler) RegisterUser(c echo.Context)error{
+func (h *Handler) RegisterUser(c echo.Context) error{
 	var params RegisterParam
 	ctx := c.Request().Context()
 
 	if err := c.Bind(&params); err !=nil {
+		h.Logger.ErrorContext(ctx, "bind failed", "error", err, "Handler:", "RegisterUser")
 		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid json body param", http.StatusBadRequest)
 	}
 	
 	if validationErrors := utils.ValidateUserParams(params); validationErrors != nil {
+		h.Logger.InfoContext(ctx, "Validation of registation parameter failed","Details", map[string]any{
+			"Handler": "RegisterAdmin",
+			"Error(s)": validationErrors,
+			"Email": *params.Email,
+		})
     	return utils.ErrorResponse(c, http.StatusBadRequest, "validation failed", validationErrors)
 	}
-	hashedPassWord, err := bcrypt.GenerateFromPassword([]byte(*params.Password), bcrypt.DefaultCost)
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*params.Password), bcrypt.DefaultCost)
 	if err != nil{
 		h.Logger.ErrorContext(ctx, "[ERROR]: An error occured while generating password hash", 
-		"error", err, "status_code", 500, "email_attempted", *params.Email)
+		"error", err, "status_code", 500, "Details", map[string]any{
+			"Handler": "RegisterUser",
+			"Error(s)": err,
+			"Email": *params.Email,
+		})
 		return  utils.ErrorResponse(c, http.StatusInternalServerError, "An internal Server Error occued...Please try again", "Internal Server Error")
 	}
 
@@ -137,9 +156,8 @@ func (h *Handler) RegisterUser(c echo.Context)error{
 	if err != nil{
 		h.Logger.ErrorContext(ctx, "[ERROR] An error occured",
 			"Error Details", map[string]any {
-			"Handler": "Register User", 
+			"Handler": "RegisterUser", 
 			"Error": err,
-			"StatusCode": 500,
 			"Email_Attempting Register Operation": *params.Email,
 			},
 		)
@@ -148,7 +166,7 @@ func (h *Handler) RegisterUser(c echo.Context)error{
 
 	qtx := h.DB.WithTx(tx)
 
-	password := string(hashedPassWord)
+	password := string(hashedPassword)
 
 	userRow, err := qtx.CreateUser(ctx, database.CreateUserParams{
 		Name:   strings.ToUpper(*params.Name),
@@ -161,8 +179,8 @@ func (h *Handler) RegisterUser(c echo.Context)error{
 
 	if err != nil{
 		statusCode, msg := utils.ParseDbError(err)
-		h.Logger.ErrorContext(ctx, "[ERROR]: An error occured:", "db_error", msg, "status_code", statusCode, "email_attempted", *params.Email)
-		return  utils.ErrorResponse(c, statusCode, "An internal Server Error occued...Please try again", "Internal Server Error")
+		h.Logger.ErrorContext(ctx, "[ERROR]: An error occured:", "db_error", msg, "email_attempted", *params.Email, "Handler", "Register User")
+		return  utils.ErrorResponse(c, statusCode, msg, http.StatusText(statusCode) )
 	}
 
 	token, err := utils.GenerateRandomToken(6)
@@ -171,7 +189,6 @@ func (h *Handler) RegisterUser(c echo.Context)error{
 		"Error Details", map[string]any {
 		"Handler": "Register User", 
 		"Error": err,
-		"StatusCode": 500,
 		"Email_Attempting register operation": *params.Email,
 		},
 		)
@@ -192,7 +209,6 @@ func (h *Handler) RegisterUser(c echo.Context)error{
 		"Error Details", map[string]any {
 		"Handler": "Register User", 
 		"Error": err,
-		"StatusCode": 500,
 		"context": ctx,
 		"Email_Attempting register operation": *params.Email,
 		})
@@ -203,27 +219,28 @@ func (h *Handler) RegisterUser(c echo.Context)error{
 	return  utils.SuccessResponse(c, 200, "User Profile Created Successfully", userRow, nil)
 }
 
-func(h *Handler) VerifyUser(c echo.Context) error {
+func (h *Handler) VerifyUser(c echo.Context) error {
 
 	type jsonBody struct{
-		Email *string `json:"email"`
-		Token *string `json:"token"`
+		Email *string `json:"email" validate:"required,email"`
+		Token *string `json:"token" validate:"required"`
+		VerificationType *string `json:"verification_type" validate:"required"`
 	}
 
 	params := jsonBody{}
 
 	ctx := c.Request().Context()
 	if err := c.Bind(&params); err != nil{
-		h.Logger.ErrorContext(ctx, "bind failed", "error", err)
-		return utils.ErrorResponse(c, http.StatusBadRequest, "An Error occured", http.StatusInternalServerError);
+		h.Logger.ErrorContext(ctx, "bind failed", "error", err, "Handler:", "RequestVerificationToken")
+		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid Json Body", http.StatusText(400));
 	}
+	cacheKey := utils.Tenary(*params.VerificationType == "Email", utils.EmailVerificationKey(*params.Email), utils.LoginVerificationKey(*params.Email))
 
-	item := cache.StringCache.Get(utils.EmailVerificationKey(*params.Email))
+	item := cache.StringCache.Get(cacheKey)
 	if item == nil{
 			h.Logger.ErrorContext(ctx, "Missing cache item", "Details",
 			map[string]any {
 			"Handler": "VerifyUser", 
-			"StatusCode": 400,
 			"UserEmail": *params.Email,
 			},
 		)
@@ -238,7 +255,6 @@ func(h *Handler) VerifyUser(c echo.Context) error {
 			"Error Details", map[string]any {
 			"Handler": "VerifyUser", 
 			"Error": err,
-			"StatusCode": 500,
 			"UserEmail": *params.Email,
 			},
 		)
@@ -256,11 +272,15 @@ func(h *Handler) VerifyUser(c echo.Context) error {
 		return  utils.ErrorResponse(c, 400, "Invalid verification token", http.StatusBadRequest)
 	}
 
-	userRow, err := qtx.VerifyUserEmail(ctx, strings.ToLower(*params.Email))
-	if err != nil{
-		statusCode, msg := utils.ParseDbError(err)
-		h.Logger.ErrorContext(ctx, "[ERROR]: An error occured:", "db_error", msg, "status_code", statusCode, "email_attempted", *params.Email)
-		return  utils.ErrorResponse(c, statusCode, "An internal Server Error occued...Please try again", "Internal Server Error")
+	var userRow database.VerifyUserEmailRow
+	if *params.VerificationType == "Email"{
+
+		userRow, err = qtx.VerifyUserEmail(ctx, strings.ToLower(*params.Email))
+		if err != nil{
+			statusCode, msg := utils.ParseDbError(err)
+			h.Logger.ErrorContext(ctx, "[ERROR]: An error occured:", "db_error", msg, "email_attempted", *params.Email)
+			return  utils.ErrorResponse(c, statusCode, msg,  http.StatusText(statusCode))
+		}
 	}
 
 	claims := models.UserClaims{
@@ -277,7 +297,6 @@ func(h *Handler) VerifyUser(c echo.Context) error {
 			"Error Details", map[string]any {
 				"Handler": "VerifyUser", 
 				"Error": err,
-				"StatusCode": 500,
 				"context": ctx,
 				"UserEmail": *params.Email,
 			})
@@ -290,15 +309,14 @@ func(h *Handler) VerifyUser(c echo.Context) error {
 			"Error Details", map[string]any {
 				"Handler": "VerifyUser", 
 				"Error": err,
-				"StatusCode": 500,
 				"context": ctx,
 				"UserEmail": *params.Email,
 			})
 		return utils.ErrorResponse(c, http.StatusInternalServerError, "An internal Server Error occued...Please try again", "Internal Server Error")
 	}
 
-	h.Logger.InfoContext(ctx, "Email Verification Successful", "claims:", claims)
-	return utils.SuccessResponse(c, 200, "Email Verification Successful", userRow, map[string]any{
+	h.Logger.InfoContext(ctx, "Verification Successful", "claims:", claims)
+	return utils.SuccessResponse(c, 200, "Verification Successful", userRow, map[string]any{
 		"access_token" : token,
 		"refresh_token" : refreshToken,
 	})

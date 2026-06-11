@@ -15,11 +15,14 @@ type Querier interface {
 	AddPolicy(ctx context.Context, arg AddPolicyParams) (Policy, error)
 	AddUserPolicies(ctx context.Context, arg AddUserPoliciesParams) ([]UserPolicy, error)
 	AddUserPolicy(ctx context.Context, arg AddUserPolicyParams) (UserPolicy, error)
+	ChangePassword(ctx context.Context, arg ChangePasswordParams) error
+	CheckUserExistsViaEmail(ctx context.Context, email string) (bool, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
 	DeletePolicy(ctx context.Context, id pgtype.UUID) error
 	GetPolicies(ctx context.Context) ([]Policy, error)
 	GetPoliciesByCategory(ctx context.Context, category string) ([]Policy, error)
 	GetPolicyByID(ctx context.Context, id pgtype.UUID) (Policy, error)
+	GetUserDetails(ctx context.Context, email string) (GetUserDetailsRow, error)
 	GetUserPolicies(ctx context.Context, userID pgtype.UUID) ([]Policy, error)
 	GetUserPolicyIDs(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error)
 	RemoveUserPolicy(ctx context.Context, arg RemoveUserPolicyParams) error

@@ -11,6 +11,35 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const changePassword = `-- name: ChangePassword :exec
+UPDATE users
+SET password = $1
+WHERE email = $2
+`
+
+type ChangePasswordParams struct {
+	Password string `json:"password"`
+	Email    string `json:"email"`
+}
+
+func (q *Queries) ChangePassword(ctx context.Context, arg ChangePasswordParams) error {
+	_, err := q.db.Exec(ctx, changePassword, arg.Password, arg.Email)
+	return err
+}
+
+const checkUserExistsViaEmail = `-- name: CheckUserExistsViaEmail :one
+SELECT EXISTS(
+    SELECT 1 FROM users WHERE email = $1
+)
+`
+
+func (q *Queries) CheckUserExistsViaEmail(ctx context.Context, email string) (bool, error) {
+	row := q.db.QueryRow(ctx, checkUserExistsViaEmail, email)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users(name, email, password, phone_number, business_name, is_admin)
 VALUES($1, $2, $3, $4, $5, $6)
@@ -51,6 +80,42 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.PhoneNumber,
+		&i.BusinessName,
+		&i.IsAdmin,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Verified,
+		&i.Blacklisted,
+	)
+	return i, err
+}
+
+const getUserDetails = `-- name: GetUserDetails :one
+SELECT id, email, password, phone_number, business_name, is_admin, created_at, updated_at, verified, blacklisted
+FROM users WHERE email = $1
+`
+
+type GetUserDetailsRow struct {
+	ID           pgtype.UUID        `json:"id"`
+	Email        string             `json:"email"`
+	Password     string             `json:"password"`
+	PhoneNumber  string             `json:"phone_number"`
+	BusinessName string             `json:"business_name"`
+	IsAdmin      bool               `json:"is_admin"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	Verified     bool               `json:"verified"`
+	Blacklisted  bool               `json:"blacklisted"`
+}
+
+func (q *Queries) GetUserDetails(ctx context.Context, email string) (GetUserDetailsRow, error) {
+	row := q.db.QueryRow(ctx, getUserDetails, email)
+	var i GetUserDetailsRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Password,
 		&i.PhoneNumber,
 		&i.BusinessName,
 		&i.IsAdmin,

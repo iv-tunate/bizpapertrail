@@ -1,26 +1,49 @@
 package middleware
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 
+	"github.com/dgrijalva/jwt-go"
+	parser "github.com/golang-jwt/jwt/v4"
 	"github.com/iv-tunate/bizpapertrail/internal/auth"
+	"github.com/iv-tunate/bizpapertrail/internal/cache"
 	"github.com/iv-tunate/bizpapertrail/internal/utils"
 	"github.com/labstack/echo"
 )
 
 func JWTMiddleware(next echo.HandlerFunc) echo.HandlerFunc{
 	return  func(c echo.Context) error{
-		authHeader := c.Request().Header.Get("Authorization")
 		ctx := c.Request().Context()
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer"){
-			slog.InfoContext(ctx, "Missing or invalid authorization header")
-			return utils.ErrorResponse(c, http.StatusUnauthorized, "Missing or invalid authorization header", http.StatusText(http.StatusUnauthorized))
+
+		token, err := utils.ExtractJwtFromHeader(c)
+		if err != nil{
+			slog.InfoContext(ctx, "Empty or missing header or header value", "Details", map[string]any{
+			"Location": "JWTMiddleware",
+			})
+			return utils.ErrorResponse(c, http.StatusUnauthorized, "Invalid or Expired Token", http.StatusText(http.StatusUnauthorized))
+	
 		}
 
-		tokenStr := strings.TrimPrefix(authHeader, "Bearer")
-		claims, err := auth.ValidateToken(tokenStr)
+		claims := &auth.Claims{}
+		jwtToken, _, err := parser.NewParser().ParseUnverified(token, claims)
+		if err != nil{
+			slog.ErrorContext(ctx, "Invalid Jwt token used for logout", "Error Details", map[string]any{
+				"Location": "JWTMiddleware",
+			})
+			return  utils.ErrorResponse(c, http.StatusBadRequest, "Invalid authorization token", http.StatusBadRequest)
+		}
+
+		cacheKey := fmt.Sprintf("Blacklist:%s", jwtToken.Signature)
+		
+		if cache.BlacklistedTokensCache.Has(cacheKey){
+			slog.ErrorContext(ctx, "An attempt to access a resource with revoked jwt token ", "Error Details", map[string]any{
+				"Location": "JWTMiddleware",
+			})
+			return  utils.ErrorResponse(c, http.StatusForbidden, "Revoked Authorization Token", http.StatusText(http.StatusForbidden))
+		}
+		claims, err = auth.ValidateToken(token)
 		if err != nil{
 			slog.InfoContext(ctx, "Invalid or Expired Token", "Details", map[string]any{
 				"claims": claims,
